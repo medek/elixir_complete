@@ -3,7 +3,6 @@ defmodule ElixirComplete.CLI do
   Entry point for escript built version of ElixirComplete
   """
   def main(args) do
-    set_defaults
     status = args |> parse_args |> process_args
     if status == :ok do
       {:ok, pid} = ElixirComplete.start(ElixirComplete, :permenent)
@@ -11,8 +10,8 @@ defmodule ElixirComplete.CLI do
     end
   end
   
-  defp set_defaults do
-    [port: 63500, cache: false, root: System.cwd()] |> process_args
+  defp get_defaults do
+    [port: 63500, cache: false, root: System.cwd()]
   end
 
   defp parse_args(args) do
@@ -24,6 +23,7 @@ defmodule ElixirComplete.CLI do
                                                  p: :port])
     case options do
       {[help: true], _, _} -> {:help, true}
+      {[], _, []} -> get_defaults()
       {args, _, []} -> args
       _ -> {:help, true}
     end

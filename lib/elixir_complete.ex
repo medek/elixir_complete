@@ -30,13 +30,15 @@ defmodule ElixirComplete do
     loop_accept(socket)
   end
 
-  def serve(client) do
-    {:ok, data} = :gen_tcp.recv(client, 0)
-    write_line(client, data)
+  defp serve(client) do
+    case :gen_tcp.recv(client, 0) do
+      {:ok, data} -> write_line(client, data)
+      {:error, _} -> Process.exit(self(), :suicide)
+    end
     serve(client)
   end
 
-  def write_line(socket, line) do
+  defp write_line(socket, line) do
     :ok = :gen_tcp.send(socket, line)
   end
 end
