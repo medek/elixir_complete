@@ -5,7 +5,7 @@ defmodule ElixirComplete.CLI do
   def main(args) do
     status = args |> parse_args |> process_args
     if status == :ok do
-      {:ok, pid} = ElixirComplete.start(ElixirComplete, :permenent)
+      {:ok, _} = ElixirComplete.start(ElixirComplete, :permenent)
       :timer.sleep(:infinity)
     end
   end
