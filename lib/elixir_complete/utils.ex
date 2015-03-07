@@ -15,13 +15,6 @@ defmodule ElixirComplete.Utils do
     defstruct [:file, :line, :column, :string, :buffer]
   end
 
-  def entries_to_string([h|t]) do
-    l = []
-    unless t == [], do: l = List.flatten(entries_to_string(t))
-    [to_string(h)] ++ l
-  end
-  def entries_to_string([]), do: []
-
   defmodule LineCompleteResult do
     defstruct [:file, :line, :column, :entries]
     defimpl Poison.Encoder, for: __MODULE__ do
@@ -29,7 +22,7 @@ defmodule ElixirComplete.Utils do
         %{file: file,
           line: line,
           column: column,
-          entries: ElixirComplete.Utils.entries_to_string(entries)} |> Poison.encode!([])
+          entries: (for x <- entries, do: to_string(x)) } |> Poison.encode!([])
       end
     end
   end 
