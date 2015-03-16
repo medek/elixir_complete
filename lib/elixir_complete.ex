@@ -5,10 +5,15 @@ defmodule ElixirComplete do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
     port = Application.get_env(ElixirComplete, :port)
+    root = Application.get_env(ElixirComplete, :root)
+    cache = Application.get_env(ElixirComplete, :cache)
+    mixfile = Application.get_env(ElixirComplete, :mixfile)
+    blacklist = Application.get_env(ElixirComplete, :blacklist)
+
     children = [
       supervisor(Task.Supervisor, [[name: ElixirComplete.TaskSupervisor]]),
       worker(Task, [ElixirComplete, :listen, [port]], id: :listener),
-      worker(ElixirComplete.Completion, [])
+      worker(ElixirComplete.Completion, [[root: root, cache: cache, mixfile: mixfile, blacklist: blacklist]])
     ]
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options

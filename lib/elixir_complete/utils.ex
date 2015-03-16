@@ -17,14 +17,6 @@ defmodule ElixirComplete.Utils do
 
   defmodule LineCompleteResult do
     defstruct [:file, :line, :column, :entries]
-    defimpl Poison.Encoder, for: __MODULE__ do
-      def encode(%{file: file, line: line, column: column, entries: entries}, _options) do
-        %{file: file,
-          line: line,
-          column: column,
-          entries: (for x <- entries, do: to_string(x)) } |> Poison.encode!([])
-      end
-    end
   end 
   
   defmodule AddBufferRequest do

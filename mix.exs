@@ -10,7 +10,7 @@ defmodule ElixirComplete.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :poison],
+    [applications: [:logger, :poison, :mix, :iex],
      mod: {ElixirComplete, []}]
   end
 

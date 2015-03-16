@@ -1,4 +1,5 @@
 ElixirComplete
 ==============
 
-** TODO: Add description **
+Code completion server for elixir based projects.
+
