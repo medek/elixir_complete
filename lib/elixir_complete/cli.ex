@@ -11,7 +11,9 @@ defmodule ElixirComplete.CLI do
   end
   
   defp get_defaults do
-    [port: 63500, cache: false, root: System.cwd(), mixfile: "mix.exs", blacklist: []]
+    # blacklist is a string here instead of a list because process_args expects
+    # a string
+    [port: 63500, cache: false, root: System.cwd(), mixfile: "mix.exs", blacklist: ""]
   end
 
   defp parse_args(args) do
@@ -42,7 +44,11 @@ defmodule ElixirComplete.CLI do
     Kernel.exit(:normal)
   end
   defp process_args({:blacklist, str}) do
-    Application.put_env(ElixirComplete, :blacklist, String.split(str, ","), [persistant: true])
+    list = []
+    if String.length(str) > 0 do
+      list = String.split(str, ",")
+    end
+    Application.put_env(ElixirComplete, :blacklist, list, [persistant: true])
   end
   defp process_args({name, value}) do
     Application.put_env(ElixirComplete, name, value, [peristent: true])
