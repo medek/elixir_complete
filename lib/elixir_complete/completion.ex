@@ -2,13 +2,17 @@ defmodule ElixirComplete.Completion do
   use GenServer
   alias ElixirComplete.Utils.LineCompleteRequest, as: LineCompleteRequest
   alias ElixirComplete.Utils.LineCompleteResult, as: LineCompleteResult
-
+  alias ElixirComplete.Utils, as: Utils
+  @builtins [:logger, :iex, :mix, :eex, :ex_unit, :elixir]
   def start_link(args) do
     {:ok, _} = Application.ensure_all_started(:mix)
     state = List.keyreplace args, :blacklist, 0, load_mixfile(args[:mixfile], args[:root], args[:blacklist])
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
+  def change_project(mixfile, root) do
+    GenServer.call __MODULE__, {:change_project, mixfile, root}
+  end
   def line_complete(data) do
     GenServer.call __MODULE__, {:line_complete, data}
   end
@@ -18,37 +22,40 @@ defmodule ElixirComplete.Completion do
     modulename = nil
     #Check to make sure the target mixfile isn't already loaded
     if Mix.ProjectStack.peek[:file] != Path.absname(mixfile, root) do
-      module = Elixir.Code.load_file mixfile, root
-      {modulename,_} = List.first(module)
+      try do
+        module = Elixir.Code.load_file mixfile, root
+        {modulename,_} = List.first(module)
 
-      if Module.split(modulename) |> List.first == "ElixirComplete" or
-         :elixir_complete in Mix.Project.get.application[:applications] do
-           blacklist = List.delete(blacklist, "ElixirComplete")
+        if Module.split(modulename) |> List.first == "ElixirComplete" or
+           :elixir_complete in Mix.Project.get.application[:applications] do
+             blacklist = List.delete(blacklist, "ElixirComplete")
+        end
+        Mix.Project.get.application[:applications] |> load_deps
+      rescue
+        e in Code.LoadError -> IO.puts "couldn't load #{mixfile} in #{root} because #{inspect e}"
       end
     end
-    Mix.Project.get.application[:applications] |> strip_builtin |> load_deps
     {:blacklist, blacklist}
-  end
-  #Remove built in stuff like :logger
-  defp strip_builtin(deps) do
-    Enum.filter(deps,
-      fn(x) ->
-        not x in [:logger, :iex, :mix, :eex, :ex_unit, :elixir]
-      end)
   end
 
   defp load_deps(deps) do
-    #Should I try to get and compile deps if this fails?
     for dep <- deps do
-      path = Mix.Project.build_path <> "/lib/" <> to_string(dep) <> "/ebin"
-      case Code.append_path(path) do
-        true ->
-          if Code.ensure_loaded?(Module.concat([Mix.Utils.camelize(to_string dep)])) do
-            IO.puts "loaded #{dep}"
-          else
-            IO.puts "fuck! something goofed on #{dep} loading"
-          end
-        {error, reason} -> IO.puts "failed to load #{dep} because #{reason}"
+      if dep in @builtins do
+        case Code.ensure_loaded?(Utils.atom_to_module(dep)) do
+          true -> IO.puts "loaded #{dep}"
+          false -> IO.puts "failed to load #{dep}"
+        end
+      else
+        path = Mix.Project.build_path <> "/lib/" <> to_string(dep) <> "/ebin"
+        case Code.append_path(path) do
+          true ->
+            if Code.ensure_loaded?(Utils.atom_to_module(dep)) do
+              IO.puts "loaded #{dep}"
+            else
+              IO.puts "failed to load #{dep}"
+            end
+          {error, reason} -> IO.puts "failed to append path for #{dep} because #{reason}"
+        end
       end
     end
   end
@@ -85,6 +92,12 @@ defmodule ElixirComplete.Completion do
     {:ok, entries} = complete_line(request, state[:blacklist])
     {:ok, result} = Poison.encode(entries)
     {:reply, result, state}
+  end
+
+  def handle_call({:project_change, mixfile, root}, _from, state) do
+    blacklist = load_mixfile(mixfile, root, List.delete(state[:blacklist], "ElixirComplete"))
+    new_state = List.keyreplace(state, :blacklist, 0, blacklist)
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:add_buffer, data}, _from, _state) do

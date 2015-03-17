@@ -43,5 +43,13 @@ defmodule ElixirComplete.Utils do
     """
     defstruct [:file, :line, :column, :count]
   end
+
+  def atom_to_module(atom) do
+    if atom == :iex do
+      Module.concat ["IEx"] #...
+    else
+      Module.concat([Mix.Utils.camelize(to_string atom)])
+    end
+  end
 end
 

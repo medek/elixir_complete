@@ -43,6 +43,9 @@ defmodule ElixirComplete.CLI do
     IO.puts "\t--blacklist: modules that you wish to remove from completion, must be encased in quotes and delimited with commas, cause I'm lazy"
     Kernel.exit(:normal)
   end
+  defp process_args({:blacklist, []}) do
+    Application.put_env(ElixirComplete, :blacklist, [], [persistant: true])
+  end
   defp process_args({:blacklist, str}) do
     list = []
     if String.length(str) > 0 do
