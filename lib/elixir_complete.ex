@@ -49,6 +49,10 @@ defmodule ElixirComplete do
   defp handle(data) do #this needs to be better
     result = ""
     case data |> String.strip |> String.split(" ", parts: 2) do
+      ["IsAlive"] -> result = ~s({"result": "ok"})
+      ["HaltServer"] ->
+        result = ~s({"result": "ok"})
+        Task.async(fn -> :timer.sleep(1000); System.halt() end)
       ["LineComplete", expr] ->
         #FIXME just, all of it!
         result = ~s({"result": "ok", "completion":#{ElixirComplete.Completion.line_complete(expr)}})
