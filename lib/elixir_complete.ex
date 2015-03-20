@@ -1,5 +1,7 @@
 defmodule ElixirComplete do
   use Application
+  alias ElixirComplete.Utils.LineCompleteRequest, as: LCR
+  alias ElixirComplete.Utils.LineCompleteResult, as: LCRes
   @moduledoc false
 
   def start(_type, _args) do
@@ -8,12 +10,11 @@ defmodule ElixirComplete do
     root = Application.get_env(ElixirComplete, :root)
     cache = Application.get_env(ElixirComplete, :cache)
     mixfile = Application.get_env(ElixirComplete, :mixfile)
-    blacklist = Application.get_env(ElixirComplete, :blacklist)
 
     children = [
       supervisor(Task.Supervisor, [[name: ElixirComplete.TaskSupervisor]]),
       worker(Task, [ElixirComplete, :listen, [port]], id: :listener),
-      worker(ElixirComplete.Completion, [[root: root, cache: cache, mixfile: mixfile, blacklist: blacklist]])
+      worker(ElixirComplete.Completion, [[root: root, cache: cache, mixfile: mixfile]])
     ]
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
@@ -46,17 +47,32 @@ defmodule ElixirComplete do
     serve(client)
   end
 
+  defp message(data) do
+    {status, result} = Poison.encode(data)
+    if status != :ok do
+      result = ~s({"result": "error", "reason": "poison is poisoned"})
+    end
+    result
+  end
+
   defp handle(data) do #this needs to be better
     result = ""
     case data |> String.strip |> String.split(" ", parts: 2) do
-      ["IsAlive"] -> result = ~s({"result": "ok"})
+      ["IsAlive"] ->
+        result = message(%{result: :ok})
       ["HaltServer"] ->
-        result = ~s({"result": "ok"})
         Task.async(fn -> :timer.sleep(1000); System.halt() end)
+        result = message(%{result: :ok})
       ["LineComplete", expr] ->
-        #FIXME just, all of it!
-        result = ~s({"result": "ok", "completion":#{ElixirComplete.Completion.line_complete(expr)}})
-      _ -> result = ~s({"result": "lolwut"})
+        {status, request} = Poison.decode(expr, as: LCR)
+        if status == :ok do
+          {:ok, entries} = ElixirComplete.Completion.line_complete(request)
+          result = message(%{result: :ok, completion: entries})
+        else
+          result = message(%{result: status, reason: request})
+        end
+      _ ->
+        result = message(%{result: :error, reason: "Unknown command"})
     end
     result
   end

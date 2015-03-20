@@ -8,4 +8,3 @@ config ElixirComplete, :cache, false
 
 config ElixirComplete, :mixfile, "mix.exs"
 
-config ElixirComplete, :blacklist, []

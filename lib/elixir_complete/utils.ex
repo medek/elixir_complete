@@ -44,6 +44,14 @@ defmodule ElixirComplete.Utils do
     defstruct [:file, :line, :column, :count]
   end
 
+  def ensure_loaded?(atom) do
+    case Code.ensure_loaded?(atom_to_module(atom)) do
+      true -> true
+      false ->
+        Code.ensure_loaded?(atom)
+    end
+  end
+
   def atom_to_module(atom) do
     if atom == :iex do
       Module.concat ["IEx"] #...
