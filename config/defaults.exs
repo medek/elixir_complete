@@ -8,3 +8,4 @@ config ElixirComplete, :cache, false
 
 config ElixirComplete, :mixfile, "mix.exs"
 
+config ElixirComplete, :suicide_seconds, 1000

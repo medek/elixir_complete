@@ -9,7 +9,6 @@ defmodule ElixirComplete do
     root = Application.get_env(ElixirComplete, :root)
     cache = Application.get_env(ElixirComplete, :cache)
     mixfile = Application.get_env(ElixirComplete, :mixfile)
-
     children = [
       supervisor(Task.Supervisor, [[name: ElixirComplete.TaskSupervisor]]),
       worker(Task, [ElixirComplete, :listen, [port]], id: :listener),
@@ -18,7 +17,15 @@ defmodule ElixirComplete do
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ElixirComplete.Supervisor]
+    pid = spawn &(suicide/0)
+    Agent.start_link fn -> pid end, name: SuicideTimer
     Supervisor.start_link(children, opts)
+  end
+
+  defp suicide do
+    s = Application.get_env(ElixirComplete, :suicide_seconds)
+    :timer.sleep(s*1000)
+    System.halt
   end
 
   def listen(port) do
@@ -55,6 +62,13 @@ defmodule ElixirComplete do
   end
 
   defp handle(data) do #this needs to be better
+    #kill and restart the suicide timer
+    Agent.update SuicideTimer,
+    fn(pid) ->
+      Process.exit pid, :kill
+      spawn &(suicide/0)
+    end
+
     result = ""
     case data |> String.strip |> String.split(" ", parts: 2) do
       ["IsAlive"] ->
