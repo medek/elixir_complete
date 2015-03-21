@@ -5,7 +5,6 @@ defmodule ElixirComplete.Completion do
   @builtins [:logger, :iex, :mix, :eex, :ex_unit, :elixir]
   def start_link(args) do
     {:ok, _} = Application.ensure_all_started(:mix)
-    :ok = File.cd(args[:root])
     load_mixfile(args[:mixfile], args[:root])
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -24,6 +23,7 @@ defmodule ElixirComplete.Completion do
 
   defp load_mixfile(mixfile, root) do
     modulename = nil
+    :ok = File.cd(root)
     #Check to make sure the target mixfile isn't already loaded
     if Mix.ProjectStack.peek[:file] != Path.absname(mixfile, root) do
       try do

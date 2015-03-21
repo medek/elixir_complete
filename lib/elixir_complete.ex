@@ -1,7 +1,6 @@
 defmodule ElixirComplete do
   use Application
   alias ElixirComplete.Utils.LineCompleteRequest, as: LCR
-  alias ElixirComplete.Utils.LineCompleteResult, as: LCRes
   @moduledoc false
 
   def start(_type, _args) do
@@ -47,8 +46,8 @@ defmodule ElixirComplete do
     serve(client)
   end
 
-  defp message(data) do
-    {status, result} = Poison.encode(data)
+  defp message(data, options \\ []) do
+    {status, result} = Poison.encode(data, options)
     if status != :ok do
       result = ~s({"result": "error", "reason": "poison is poisoned"})
     end
